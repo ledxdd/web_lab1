@@ -5,140 +5,186 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Лабораторная работа 1</title>
     <style>
-        .shapka {
+        body {
+            margin: 0;
+            color: #222;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            display: block;
+            padding: 10px;
+            color: #222;
             font-family: serif;
             font-size: 20px;
-            color: #003366;
-            margin-bottom: 20px;
+            background: #eee;
         }
 
-        .main-container {
+        .student-info h1,
+        .student-info p {
+            margin: 5px 0;
+        }
+
+        .student-info h1::first-letter {
+            color: #000;
+        }
+
+        main {
+            display: block;
+            margin: 20px;
+        }
+
+        .workspace {
             display: flex;
-            justify-content: space-between; 
-            align-items: flex-start;     
-            gap: 20px;                
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 20px;
         }
 
-        .column {
-            flex: 1;
+        .panel {
+            display: block;
+            flex: 1 1 400px;
+        }
+
+        .results-panel {
+            flex-basis: 100%;
+        }
+
+        fieldset {
+            margin: 0 0 12px;
+            padding: 0;
+            border: 0;
+        }
+
+        input[type="text"] {
+            width: 200px;
+            padding: 6px;
+            color: inherit;
+            font: inherit;
+        }
+
+        input[aria-invalid="true"] {
+            border-color: red;
+        }
+
+        button {
+            margin: 5px;
+            padding: 6px 10px;
+            background: #eee;
+        }
+
+        button[data-r][aria-pressed="true"] {
+            background: #bbb;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        .message {
+            min-height: 20px;
+        }
+
+        .message[data-kind="error"] {
+            color: red;
+        }
+
+        .message[data-kind="success"] {
+            color: green;
+        }
+
+        canvas {
+            display: block;
+            width: 460px;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #999;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 6px;
+            border: 1px solid #777;
+            text-align: center;
         }
     </style>
+    <script src="app.js" defer></script>
 </head>
 <body>
-
-    <header class="shapka">
-        <p>Козлов Владислав Петрович</p>
-        <p>Группа Р3207</p>
-        <p>Вариант 12620</p>
-        <img src="https://i.pinimg.com/736x/05/5e/31/055e316189a49c2829830164a66b0d53.jpg" width=100, height=100>
+    <header>
+        <div class="student-info">
+            <h1>Лабораторная работа 1</h1>
+            <p>Козлов Владислав Петрович</p>
+            <p>Группа Р3207</p>
+            <p>Вариант 12620</p>
+        </div>
     </header>
 
-    <div class="main-container">
-        
-        <div class="column">
-            <h3>Ввод</h3>
-            <p>
-                X: <input type="text" placeholder="-3 ... 3" style="width: 80px;">
-            </p>
-            <p>Y:
-                <input type="radio" name="y_val" value="-3">-3
-                <input type="radio" name="y_val" value="-2">-2
-                <input type="radio" name="y_val" value="-1">-1
-                <input type="radio" name="y_val" value="0">0
-                <input type="radio" name="y_val" value="1">1
-                <input type="radio" name="y_val" value="2">2
-                <input type="radio" name="y_val" value="3">3
-                <input type="radio" name="y_val" value="4">4
-                <input type="radio" name="y_val" value="5">5
-            </p>
-            <p>
-                R: 
-                <button type="button">1</button>
-                <button type="button">2</button>
-                <button type="button">3</button>
-                <button type="button">4</button>
-                <button type="button">5</button>
-            </p>
+    <main>
+        <div class="workspace">
+            <section class="panel">
+                <h2>Проверка точки:</h2>
+                <form id="point-form">
+                    <fieldset>
+                        <label for="x-value">Координата X (от −3 до 3)</label>
+                        <input id="x-value" type="text">
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Координата Y</legend>
+                        <label><input type="radio" name="y" value="-3"> −3</label>
+                        <label><input type="radio" name="y" value="-2"> −2</label>
+                        <label><input type="radio" name="y" value="-1"> −1</label>
+                        <label><input type="radio" name="y" value="0"> 0</label>
+                        <label><input type="radio" name="y" value="1"> 1</label>
+                        <label><input type="radio" name="y" value="2"> 2</label>
+                        <label><input type="radio" name="y" value="3"> 3</label>
+                        <label><input type="radio" name="y" value="4"> 4</label>
+                        <label><input type="radio" name="y" value="5"> 5</label>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Радиус R</legend>
+                        <button type="button" data-r="1" aria-pressed="false">1</button>
+                        <button type="button" data-r="2" aria-pressed="false">2</button>
+                        <button type="button" data-r="3" aria-pressed="false">3</button>
+                        <button type="button" data-r="4" aria-pressed="false">4</button>
+                        <button type="button" data-r="5" aria-pressed="false">5</button>
+                        <input id="r-value" type="hidden">
+                    </fieldset>
+
+                    <button type="submit">Проверить точку</button>
+                    <button id="clear-history" type="button">Очистить историю</button>
+                    <p class="message" id="form-message"></p>
+                </form>
+            </section>
+
+            <section class="panel">
+                <h2>Координатная область:</h2>
+                <canvas id="area-canvas" width="460" height="460">Канвас</canvas>
+            </section>
+
+            <section class="panel results-panel">
+                <h2>История проверок:</h2>
+                <table id="results-table">
+                    <thead>
+                        <tr>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>R</th>
+                            <th>Результат</th>
+                            <th>Дата и время</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
         </div>
-
-        <div class="column">
-            <h3>Картинка</h3>
-            <canvas id="canvas" width="300" height="300"></canvas>
-
-            <script>
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-
-            const width = canvas.width;
-            const height = canvas.height;
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const tickLength = 4;
-            const R = 120;
-
-            ctx.fillStyle = '#3399ff'; 
-
-            ctx.fillRect(centerX, centerY - R, R, R);
-
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(centerX - R, centerY);
-            ctx.lineTo(centerX, centerY - R);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-
-            ctx.arc(centerX, centerY, R / 2, 0, Math.PI / 2);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.fillStyle = '#000';
-            
-            ctx.beginPath();
-
-            ctx.moveTo(0, centerY);
-            ctx.lineTo(width, centerY);
-
-            ctx.moveTo(width - 10, centerY - 5);
-            ctx.lineTo(width, centerY);
-            ctx.lineTo(width - 10, centerY + 5);
-
-            ctx.moveTo(centerX, height);
-            ctx.lineTo(centerX, 0);
-
-            ctx.moveTo(centerX - 5, 10);
-            ctx.lineTo(centerX, 0);
-            ctx.lineTo(centerX + 5, 10);
-
-            ctx.stroke();
-
-
-        </script>
-        </div>
-
-        <div class="column">
-            <h3> Таблица результатов </h3>
-            <table id="restable">
-                <thead>
-                    <tr>
-                        <th>X</th>
-                        <th>Y</th>
-                        <th>R</th>
-                        <th>Результат</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    
-            </table>
-            
-        </div>
-
-    </div>
-
+    </main>
 </body>
 </html>
