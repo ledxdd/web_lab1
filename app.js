@@ -22,24 +22,63 @@ let lastAcceptedX = "";
 let currentTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function isPartialNumber(value) {
-    return /^\d*[.,]?\d*$/.test(value);
+    return /^-?(?:\d*(?:[.,]\d*)?)?$/.test(value);
 }
 
 function parseX(value) {
-    const trimmed = value.trim();
-    if (!isPartialNumber(trimmed)) {
+    const normalized = value.trim().replace(",", ".");
+
+    if (!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) {
         return null;
     }
 
-    const parsed = Number(trimmed.replace(",", "."));
+    const negative = normalized.startsWith("-");
+    const unsigned = negative ? normalized.slice(1) : normalized;
+    let [integerPart, fractionPart = ""] = unsigned.split(".");
 
-    return Number.isFinite(parsed) && parsed >= X_MIN && parsed <= X_MAX ? parsed : null;
+    if (integerPart === "") {
+        integerPart = "0";
+    }
+
+    const scale = 10n ** BigInt(fractionPart.length);
+    const digits = `${integerPart}${fractionPart}`;
+    let numerator = BigInt(digits);
+
+    if (negative) {
+        numerator = -numerator;
+    }
+
+    if (numerator < BigInt(X_MIN) * scale || numerator > BigInt(X_MAX) * scale) {
+        return null;
+    }
+
+    return {
+        text: `${negative ? "-" : ""}${integerPart}${fractionPart === "" ? "" : `.${fractionPart}`}`,
+        numerator,
+        scale
+    };
 }
 
 function isHit(x, y, radius) {
-    const rectangle = x >= 0 && x <= radius && y >= 0 && y <= radius;
-    const triangle = x >= -radius && x <= 0 && y >= 0 && y <= x + radius;
-    const quarterCircle = x >= 0 && y <= 0 && x * x + y * y <= radius * radius / 4;
+    const exactX = typeof x === "string" || typeof x === "number" ? parseX(String(x)) : x;
+    const numerator = exactX.numerator;
+    const scale = exactX.scale;
+    const exactY = BigInt(y);
+    const exactRadius = BigInt(radius);
+    const scaledRadius = exactRadius * scale;
+
+    const rectangle = numerator >= 0n
+        && numerator <= scaledRadius
+        && exactY >= 0n
+        && exactY <= exactRadius;
+    const triangle = numerator >= -scaledRadius
+        && numerator <= 0n
+        && exactY >= 0n
+        && exactY * scale <= numerator + scaledRadius;
+    const quarterCircle = numerator >= 0n
+        && exactY <= 0n
+        && 4n * (numerator * numerator + exactY * exactY * scale * scale)
+            <= exactRadius * exactRadius * scale * scale;
 
     return rectangle || triangle || quarterCircle;
 }
@@ -65,13 +104,12 @@ function selectRadius(radius) {
 function isStoredEntryValid(entry) {
     return entry !== null
         && typeof entry === "object"
-        && Number.isFinite(entry.x)
+        && (typeof entry.x === "string" || Number.isFinite(entry.x))
+        && parseX(String(entry.x)) !== null
         && Number.isFinite(entry.y)
         && Number.isFinite(entry.r)
-        && typeof entry.hit === "boolean"
         && Number.isFinite(entry.timestamp)
-        && entry.x >= X_MIN
-        && entry.x <= X_MAX
+        && typeof entry.hit === "boolean"
         && Y_VALUES.has(entry.y)
         && R_VALUES.has(entry.r);
 }
@@ -100,6 +138,10 @@ function saveHistory() {
 
 function formatNumber(value) {
     return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 8 }).format(value);
+}
+
+function formatX(value) {
+    return typeof value === "string" ? value.replace(".", ",") : formatNumber(value);
 }
 
 function formatTimestamp(timestamp) {
@@ -141,7 +183,7 @@ function renderHistory() {
 
     history.slice().reverse().forEach((entry) => {
         const row = document.createElement("tr");
-        appendCell(row, formatNumber(entry.x));
+        appendCell(row, formatX(entry.x));
         appendCell(row, formatNumber(entry.y));
         appendCell(row, formatNumber(entry.r));
         appendCell(row, entry.hit ? "Попадание" : "Промах", entry.hit ? "result-hit" : "result-miss");
@@ -235,7 +277,8 @@ function drawGraph(point = null) {
 
     if (point && R_VALUES.has(point.r)) {
         const scale = radiusPixels / point.r;
-        const pointX = centerX + point.x * scale;
+        const numericX = Number(String(point.x).replace(",", "."));
+        const pointX = centerX + numericX * scale;
         const pointY = centerY - point.y * scale;
         context.beginPath();
         context.arc(pointX, pointY, 6, 0, Math.PI * 2);
@@ -293,7 +336,7 @@ form.addEventListener("submit", (event) => {
     }
 
     const entry = {
-        x,
+        x: x.text,
         y,
         r: radius,
         hit: isHit(x, y, radius),
