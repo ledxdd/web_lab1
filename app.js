@@ -130,7 +130,7 @@ function saveHistory() {
 
         return true;
     } catch {
-        setMessage("Не удалось сохранить историю в LocalStorage.", "error");
+        setMessage("Не удалось сохранить историю в LocalStorage", "error");
 
         return false;
     }
